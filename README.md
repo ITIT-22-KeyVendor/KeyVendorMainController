@@ -1,3 +1,4 @@
 # KeyVendorMainController
-This is a magister degree diploma project repository of students of ITIT-22 group - Stepanov Mykhailo, Stelmakh Andrii and Zarichinskii Bogdan.
-Project consists of 3 parts: Android application for communication with whole system, code for the main communication module itself and code for the system's executive module.
+This is a sub-project for a complex magister degree diploma project which is suppose to automate the key management, dispence, and storage.
+Author - Stelmakh Andrii.
+The sub-project's goal is to provide and manage the communication between Android app and the rest of the system.
