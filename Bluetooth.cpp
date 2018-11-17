@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "Bluetooth.h"
 
 Bluetooth::Bluetooth(HardwareSerial &serial) {
@@ -9,8 +10,10 @@ String Bluetooth::Read() {
   if (serial == NULL) return data;
   
   if (serial->available())
-    while (serial->available())
+    while (serial->available()){
       data += char(serial->read());
+      delay(2);
+    }
 
   return data;
 }
