@@ -78,7 +78,7 @@ void loop() {
   else if (command.type == USER_DEMOTE  ) return;
   else if (command.type == GET_USER_LIST) return;
   else if (command.type == GET_KEY_LIST ) GetKeyListCommand(command);
-  else if (command.type == SET_KEY_LIST ) return;
+  else if (command.type == SET_KEY_LIST ) SetKeyListCommand(command);
   else if (command.type == GET_KEY      ) GetKeyCommand(command);
   else if (command.type == GET_LOG      ) return;
   else if (command.type == CLEAR_LOG    ) return;
@@ -179,6 +179,34 @@ void GetKeyListCommand(Command command) {
     answer = GenerateAnswerString(command, ACCESS_DENIED);
   else 
     answer = GenerateAnswerString(command, FAILURE);
+
+  Serial.println(answer);
+  int bytesSend = bluetooth.Write(answer);
+  Serial.println(bytesSend);
+}
+void SetKeyListCommand(Command command) {
+  String answer = "";
+
+  if (IsUUIDInFile(adminsFileName, command.uuid)) {
+    sdCard.ClearFile(keysFileName);
+    sdCard.OpenFileForWriting(keysFileName);
+    String key = "";
+
+    for(int i=0; i < command.data.length(); i++) {
+      if (command.data[i] == '@' || i == command.data.length() - 1) {
+        sdCard.WriteToFile(key);
+        key = "";
+      }
+      else
+        key += command.data[i];
+    }
+
+    sdCard.CloseFile();
+
+    answer = GenerateAnswerString(command, SUCCESS);
+  }
+  else
+    answer = GenerateAnswerString(command, ACCESS_DENIED);
 
   Serial.println(answer);
   int bytesSend = bluetooth.Write(answer);

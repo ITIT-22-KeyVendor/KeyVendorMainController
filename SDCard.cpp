@@ -48,6 +48,11 @@ bool   SDCard::CloseFile() {
   file.close();
   return true;
 }
+bool   SDCard::ClearFile(String fileName) {
+  SD.remove(fileName);
+  bool result = CreateFile(fileName);
+  return result;
+}
 int    SDCard::FileByteLength() {
   return file.available();
 }

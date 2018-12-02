@@ -13,6 +13,7 @@ public:
   bool   OpenFileForReading(String);
   bool   OpenFileForWriting(String);
   bool   CloseFile();
+  bool   ClearFile(String);
   int    FileByteLength();
   int    WriteToFile(String);
   String ReadLineFromFile();
