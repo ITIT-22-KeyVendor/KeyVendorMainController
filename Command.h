@@ -6,27 +6,33 @@ const String FAILURE =         "1";
 const String INVALID_COMMAND = "2";
 const String ACCESS_DENIED =   "3";
 
-const String USER_LOGIN =    "0";  
-const String USER_REGISTER = "1";  
-const String USER_CONFIRM =  "2";
-const String USER_DENY =     "3";
-const String USER_BAN =      "4";
-const String USER_UNBAN =    "5";
-const String USER_PROMOTE =  "6";
-const String USER_DEMOTE =   "7";
-const String GET_USER_LIST = "8";
-const String GET_KEY_LIST =  "9";
-const String SET_KEY_LIST =  "10";
-const String GET_KEY =       "11";
-const String GET_LOG =       "12";
-const String CLEAR_LOG =     "13";
-const String ADMIN_CHECK =   "14"; 
+const String USER_LOGIN =           "0";  
+const String USER_REGISTER =        "1";  
+const String USER_CONFIRM =         "2";
+const String USER_DENY =            "3";
+const String USER_BAN =             "4";
+const String USER_UNBAN =           "5";
+const String USER_PROMOTE =         "6";
+const String USER_DEMOTE =          "7";
+const String GET_APPLICATION_LIST = "8";
+const String GET_USER_LIST =        "9";
+const String GET_ADMIN_LIST =       "10";
+const String GET_BAN_LIST =         "11";
+const String GET_INFO =             "12";
+const String UPDATE_INFO =          "13";
+const String GET_KEY_LIST =         "14";
+const String SET_KEY_LIST =         "15";
+const String GET_KEY =              "16";
+const String GET_LOG =              "17";
+const String CLEAR_LOG =            "18";
+const String ADMIN_CHECK =          "19";
 
-String* COMMANDS[] = { &USER_LOGIN,     &USER_REGISTER,  &USER_CONFIRM,   &USER_DENY,      
-                       &USER_BAN,       &USER_UNBAN,     &USER_PROMOTE,   &USER_DEMOTE,  
-                       &GET_USER_LIST,  &GET_KEY_LIST,   &SET_KEY_LIST,   &GET_KEY,        
-                       &GET_LOG,        &CLEAR_LOG,      &ADMIN_CHECK };
-const int COMMANDS_ARRAY_SIZE = 15;
+
+const String* COMMANDS[] = { &USER_LOGIN,     &USER_REGISTER,  &USER_CONFIRM,   &USER_DENY,   &GET_APPLICATION_LIST,    
+                             &USER_BAN,       &USER_UNBAN,     &USER_PROMOTE,   &USER_DEMOTE, &GET_ADMIN_LIST,
+                             &GET_USER_LIST,  &GET_KEY_LIST,   &SET_KEY_LIST,   &GET_KEY,     &GET_BAN_LIST,   
+                             &GET_LOG,        &CLEAR_LOG,      &ADMIN_CHECK,    &UPDATE_INFO, &GET_INFO };
+const int COMMANDS_ARRAY_SIZE = 20;
 
 struct Command { 
   String uuid = "";
@@ -85,7 +91,7 @@ Command GenerateCommand(String commandString) {
       if (!existing) command.isValid = false;
     }
   }
-    
+  
   return command;
 }
 String GenerateAnswerString(Command command, String answerType, String data = "") {
