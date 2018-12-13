@@ -10,6 +10,7 @@ const String usersFileName    = "users.txt";
 const String adminsFileName   = "admins.txt";
 const String bansFileName     = "bans.txt";
 const String keysFileName     = "keys.txt";
+const String profilesFileName = "profiles.txt";
 
 Bluetooth bluetooth(Serial3);
 SDCard sdCard(53, Serial);
@@ -36,6 +37,7 @@ void setup() {
   sdCard.CreateFile(adminsFileName);
   sdCard.CreateFile(bansFileName);
   sdCard.CreateFile(keysFileName);
+  sdCard.CreateFile(profilesFileName);
 
   startTime = millis();
   Serial.println("KeyVendor is ready");
@@ -88,7 +90,6 @@ void loop() {
   else if (command.type == GET_LOG             )   GetLogCommand(command);
   else if (command.type == CLEAR_LOG           )   ClearLogCommand(command);
   else if (command.type == ADMIN_CHECK         )   AdminCheckCommand(command);
-  
 }
 
 void InvalidCommand(Command command) {
@@ -112,7 +113,7 @@ void UserLoginCommand(Command command) {
     answer = GenerateAnswerString(command, ACCESS_DENIED);
     WriteToLog(command, "-", ACCESS_DENIED);
   }
-  else if (IsUUIDInFile(usersFileName, command.uuid)) {
+  else if (IsUUIDInFile(usersFileName, command.uuid) || IsUUIDInFile(adminsFileName, command.uuid)) {
     answer = GenerateAnswerString(command, SUCCESS);
     WriteToLog(command, "-", SUCCESS);
   }
@@ -125,37 +126,32 @@ void UserLoginCommand(Command command) {
 }
 void UserRegisterCommand(Command command) {
   String answer = "";
-  if (IsUUIDInFile(usersFileName, command.uuid))
+  if (IsUUIDInFile(usersFileName, command.uuid) || IsUUIDInFile(adminsFileName, command.uuid))
     answer = GenerateAnswerString(command, FAILURE);
   else if (IsUUIDInFile(requestsFileName, command.uuid))
     answer = GenerateAnswerString(command, FAILURE);
   else if (IsUUIDInFile(bansFileName, command.uuid))
     answer = GenerateAnswerString(command, ACCESS_DENIED);
   else {
+    String userInfo = command.uuid + " " + command.data;
     sdCard.OpenFileForReading(adminsFileName);
     String line = sdCard.ReadLineFromFile();
-    bool noAdmins = line == "";
+    bool noAdmins = line == "";    
     sdCard.CloseFile();
-
+    sdCard.OpenFileForWriting(profilesFileName);
+    sdCard.WriteToFile(userInfo);
+    sdCard.CloseFile();
     if (noAdmins) {
       sdCard.OpenFileForWriting(adminsFileName);
       sdCard.WriteToFile(command.uuid);
       sdCard.CloseFile();
-
-      String userInfo = command.uuid + " " + command.data;
-      sdCard.OpenFileForWriting(usersFileName);
-      sdCard.WriteToFile(userInfo);
-      sdCard.CloseFile();
-      answer = GenerateAnswerString(command, SUCCESS);
     }
     else {
-      String userInfo = command.uuid + " " + command.data;
       sdCard.OpenFileForWriting(requestsFileName);
-      sdCard.WriteToFile(userInfo);
+      sdCard.WriteToFile(command.uuid);
       sdCard.CloseFile();
-      answer = GenerateAnswerString(command, SUCCESS);
     }
-
+    answer = GenerateAnswerString(command, SUCCESS);
     WriteToLog(command, "-", SUCCESS);
   }
 
@@ -166,27 +162,17 @@ void UserConfirmCommand(Command command) {
   String answer = "";
   if (IsUUIDInFile(adminsFileName, command.uuid)) {
     if (IsUUIDInFile(requestsFileName, command.data)) {
-      String line = "";
-      sdCard.OpenFileForReading(requestsFileName);
-      do {
-        line = sdCard.ReadLineFromFile();
-        if (line != "" && line.startsWith(command.data)) 
-          break;
-      } while (line != "");
-      sdCard.CloseFile();
       sdCard.OpenFileForWriting(usersFileName);
-      sdCard.WriteToFile(line);
+      sdCard.WriteToFile(command.data);
       sdCard.CloseFile();
       sdCard.DeleteLineFromFile(requestsFileName, command.data);
       answer = GenerateAnswerString(command, SUCCESS);
-    } else {
+    } 
+    else 
       answer = GenerateAnswerString(command, FAILURE);
-    }
   }
-  else if (IsUUIDInFile(usersFileName, command.uuid))
-    answer = GenerateAnswerString(command, ACCESS_DENIED);
   else
-    answer = GenerateAnswerString(command, FAILURE);
+    answer = GenerateAnswerString(command, ACCESS_DENIED);
 
   Serial.println(answer);
   bluetooth.Write(answer);
@@ -197,14 +183,12 @@ void UserDenyCommand(Command command) {
     if (IsUUIDInFile(requestsFileName, command.data)) {
       sdCard.DeleteLineFromFile(requestsFileName, command.data);
       answer = GenerateAnswerString(command, SUCCESS);
-    } else {
+    } 
+    else
       answer = GenerateAnswerString(command, FAILURE);
-    }
   }
-  else if (IsUUIDInFile(usersFileName, command.uuid))
-    answer = GenerateAnswerString(command, ACCESS_DENIED);
   else
-    answer = GenerateAnswerString(command, FAILURE);
+    answer = GenerateAnswerString(command, ACCESS_DENIED);
 
   Serial.println(answer);
   bluetooth.Write(answer);
@@ -213,27 +197,17 @@ void UserBanCommand(Command command) {
   String answer = "";
   if (IsUUIDInFile(adminsFileName, command.uuid)) {
     if (IsUUIDInFile(usersFileName, command.data)) {
-      String line = "";
-      sdCard.OpenFileForReading(usersFileName);
-      do {
-        line = sdCard.ReadLineFromFile();
-        if (line != "" && line.startsWith(command.data)) 
-          break;
-      } while (line != "");
-      sdCard.CloseFile();
       sdCard.OpenFileForWriting(bansFileName);
-      sdCard.WriteToFile(line);
+      sdCard.WriteToFile(command.data);
       sdCard.CloseFile();
       sdCard.DeleteLineFromFile(usersFileName, command.data);
       answer = GenerateAnswerString(command, SUCCESS);
-    } else {
+    } 
+    else
       answer = GenerateAnswerString(command, FAILURE);
-    }
   }
-  else if (IsUUIDInFile(usersFileName, command.uuid))
-    answer = GenerateAnswerString(command, ACCESS_DENIED);
   else
-    answer = GenerateAnswerString(command, FAILURE);
+    answer = GenerateAnswerString(command, ACCESS_DENIED);
 
   Serial.println(answer);
   bluetooth.Write(answer);
@@ -242,27 +216,17 @@ void UserUnbanCommand(Command command) {
   String answer = "";
   if (IsUUIDInFile(adminsFileName, command.uuid)) {
     if (IsUUIDInFile(bansFileName, command.data)) {
-      String line = "";
-      sdCard.OpenFileForReading(bansFileName);
-      do {
-        line = sdCard.ReadLineFromFile();
-        if (line != "" && line.startsWith(command.data)) 
-          break;
-      } while (line != "");
-      sdCard.CloseFile();
       sdCard.OpenFileForWriting(usersFileName);
-      sdCard.WriteToFile(line);
+      sdCard.WriteToFile(command.data);
       sdCard.CloseFile();
       sdCard.DeleteLineFromFile(bansFileName, command.data);
       answer = GenerateAnswerString(command, SUCCESS);
-    } else {
+    } 
+    else
       answer = GenerateAnswerString(command, FAILURE);
-    }
   }
-  else if (IsUUIDInFile(usersFileName, command.uuid))
-    answer = GenerateAnswerString(command, ACCESS_DENIED);
   else
-    answer = GenerateAnswerString(command, FAILURE);
+    answer = GenerateAnswerString(command, ACCESS_DENIED);
 
   Serial.println(answer);
   bluetooth.Write(answer);
@@ -274,59 +238,175 @@ void UserPromoteCommand(Command command) {
       sdCard.OpenFileForWriting(adminsFileName);
       sdCard.WriteToFile(command.data);
       sdCard.CloseFile();
+      sdCard.DeleteLineFromFile(usersFileName, command.data);
       answer = GenerateAnswerString(command, SUCCESS);
-    } else {
+    } 
+    else
       answer = GenerateAnswerString(command, FAILURE);
-    }
   }
-  else if (IsUUIDInFile(usersFileName, command.uuid))
-    answer = GenerateAnswerString(command, ACCESS_DENIED);
   else
-    answer = GenerateAnswerString(command, FAILURE);
+    answer = GenerateAnswerString(command, ACCESS_DENIED);
 
   Serial.println(answer);
   bluetooth.Write(answer);
 }
 void UserDemoteCommand(Command command) {
   String answer = "";
-  if (IsUUIDInFile(adminsFileName, command.uuid) && command.uuid != command.data) {
-    if (IsUUIDInFile(adminsFileName, command.data)) {
+  if (IsUUIDInFile(adminsFileName, command.uuid)) {
+    if (IsUUIDInFile(adminsFileName, command.data) && command.uuid != command.data) {
+      sdCard.OpenFileForWriting(usersFileName);
+      sdCard.WriteToFile(command.data);
+      sdCard.CloseFile();
       sdCard.DeleteLineFromFile(adminsFileName, command.data);
       answer = GenerateAnswerString(command, SUCCESS);
-    } else {
+    } 
+    else
       answer = GenerateAnswerString(command, FAILURE);
-    }
   }
-  else if (IsUUIDInFile(usersFileName, command.uuid))
-    answer = GenerateAnswerString(command, ACCESS_DENIED);
   else
-    answer = GenerateAnswerString(command, FAILURE);
+    answer = GenerateAnswerString(command, ACCESS_DENIED);
 
   Serial.println(answer);
   bluetooth.Write(answer);
 }
 void GetApplicationListCommand(Command command) {
-  
+  String answer = "";
+  if (IsUUIDInFile(adminsFileName, command.uuid)) {
+    int indexer = command.data.toInt();
+    String data = "";
+    String line = "";
+    int i = 0;
+    sdCard.OpenFileForReading(requestsFileName);
+    do {
+      line = sdCard.ReadLineFromFile();
+      if (line != "" && i >= indexer * 10) {
+        if (i > indexer * 10) data += "@";
+        data += line;
+      }
+      i++;
+    } while (line != "" && i < (indexer+1) * 10);
+    sdCard.CloseFile();
+    answer = GenerateAnswerString(command, SUCCESS, data);
+  }
+  else
+    answer = GenerateAnswerString(command, ACCESS_DENIED);
+
+  Serial.println(answer);
+  bluetooth.Write(answer);
 }
 void GetUserListCommand(Command command) {
-  
+  String answer = "";
+  if (IsUUIDInFile(adminsFileName, command.uuid)) {
+    int indexer = command.data.toInt();
+    String data = "";
+    String line = "";
+    int i = 0;
+    sdCard.OpenFileForReading(usersFileName);
+    do {
+      line = sdCard.ReadLineFromFile();
+      if (line != "" && i >= indexer * 10) {
+        if (i > indexer * 10) data += "@";
+        data += line;
+      }
+      i++;
+    } while (line != "" && i < (indexer+1) * 10);
+    sdCard.CloseFile();
+    answer = GenerateAnswerString(command, SUCCESS, data);
+  }
+  else
+    answer = GenerateAnswerString(command, ACCESS_DENIED);
+
+  Serial.println(answer);
+  bluetooth.Write(answer);
 }
-void GetAdminListCommand(Command command){
-  
+void GetAdminListCommand(Command command) {
+  String answer = "";
+  if (IsUUIDInFile(adminsFileName, command.uuid)) {
+    int indexer = command.data.toInt();
+    String data = "";
+    String line = "";
+    int i = 0;
+    sdCard.OpenFileForReading(adminsFileName);
+    do {
+      line = sdCard.ReadLineFromFile();
+      if (line != "" && i >= indexer * 10) {
+        if (i > indexer * 10) data += "@";
+        data += line;
+      }
+      i++;
+    } while (line != "" && i < (indexer+1) * 10);
+    sdCard.CloseFile();
+    answer = GenerateAnswerString(command, SUCCESS, data);
+  }
+  else
+    answer = GenerateAnswerString(command, ACCESS_DENIED);
+
+  Serial.println(answer);
+  bluetooth.Write(answer);
 }
-void GetBanListCommand(Command command){
-  
+void GetBanListCommand(Command command) {
+  String answer = "";
+  if (IsUUIDInFile(adminsFileName, command.uuid)) {
+    int indexer = command.data.toInt();
+    String data = "";
+    String line = "";
+    int i = 0;
+    sdCard.OpenFileForReading(bansFileName);
+    do {
+      line = sdCard.ReadLineFromFile();
+      if (line != "" && i >= indexer * 10) {
+        if (i > indexer * 10) data += "@";
+        data += line;
+      }
+      i++;
+    } while (line != "" && i < (indexer+1) * 10);
+    sdCard.CloseFile();
+    answer = GenerateAnswerString(command, SUCCESS, data);
+  }
+  else
+    answer = GenerateAnswerString(command, ACCESS_DENIED);
+
+  Serial.println(answer);
+  bluetooth.Write(answer);
 }
 void GetInfoCommand(Command command){
-  
+  String answer = "";
+  if (IsUUIDInFile(adminsFileName, command.uuid)) {
+    if (IsUUIDInFile(profilesFileName, command.data)) {
+      String data = "";
+      String line = "";
+      sdCard.OpenFileForReading(profilesFileName);
+      do {
+        line = sdCard.ReadLineFromFile();
+        if (line != "" && line.startsWith(command.data)) 
+          break;
+      } while (line != "");
+      sdCard.CloseFile();
+      bool infoStarted = false;
+      for (int i = 0; i < line.length(); i++) {
+        if (!infoStarted && line[i] == ' ')
+          infoStarted = true;
+        else if (infoStarted)
+          data += line[i];
+      }
+      answer = GenerateAnswerString(command, SUCCESS, data);
+    }
+    else 
+      answer = GenerateAnswerString(command, FAILURE);
+  }
+  else
+    answer = GenerateAnswerString(command, ACCESS_DENIED);
+
+  Serial.println(answer);
+  bluetooth.Write(answer);
 }
 void UpdateInfoCommand(Command command) {
   String answer = "";
   if (IsUUIDInFile(bansFileName, command.uuid))
     answer = GenerateAnswerString(command, ACCESS_DENIED); 
-  else if (IsUUIDInFile(usersFileName, command.uuid)) {
-    String newLine = command.uuid + " " + command.data;
-    sdCard.EditLineFromFile(usersFileName, command.uuid, newLine);
+  else if (IsUUIDInFile(usersFileName, command.uuid) || IsUUIDInFile(adminsFileName, command.uuid)) {
+    String newInfo = command.uuid + " " + command.data;
+    sdCard.EditLineFromFile(profilesFileName, command.uuid, newInfo);
     answer = GenerateAnswerString(command, SUCCESS); 
     WriteToLog(command, "-", SUCCESS);
   }
@@ -338,12 +418,11 @@ void UpdateInfoCommand(Command command) {
 }
 void GetKeyListCommand(Command command) {
   String answer = "";
-  if (IsUUIDInFile(usersFileName, command.uuid)) {
+  if (IsUUIDInFile(usersFileName, command.uuid) || IsUUIDInFile(adminsFileName, command.uuid)) {
     String data = "";
-    sdCard.OpenFileForReading(keysFileName);
     String line = "";
-
     int i = 0;
+    sdCard.OpenFileForReading(keysFileName);
     do
     {
       line = sdCard.ReadLineFromFile();
@@ -353,28 +432,23 @@ void GetKeyListCommand(Command command) {
       }
       i++;
     } while (line != "");
-
     sdCard.CloseFile();
-
     answer = GenerateAnswerString(command, SUCCESS, data);
   }
-  else if (IsUUIDInFile(bansFileName, command.uuid))
+  else if (IsUUIDInFile(bansFileName, command.uuid) || IsUUIDInFile(requestsFileName, command.uuid))
     answer = GenerateAnswerString(command, ACCESS_DENIED);
   else 
     answer = GenerateAnswerString(command, FAILURE);
 
   Serial.println(answer);
   int bytesSend = bluetooth.Write(answer);
-  Serial.println(bytesSend);
 }
 void SetKeyListCommand(Command command) {
   String answer = "";
-
   if (IsUUIDInFile(adminsFileName, command.uuid)) {
     sdCard.ClearFile(keysFileName);
     sdCard.OpenFileForWriting(keysFileName);
     String key = "";
-
     for(int i=0; i < command.data.length(); i++) {
       if (command.data[i] == '@') {
         sdCard.WriteToFile(key);
@@ -388,9 +462,7 @@ void SetKeyListCommand(Command command) {
       else
         key += command.data[i];
     }
-
     sdCard.CloseFile();
-
     answer = GenerateAnswerString(command, SUCCESS);
   }
   else
@@ -398,13 +470,10 @@ void SetKeyListCommand(Command command) {
 
   Serial.println(answer);
   int bytesSend = bluetooth.Write(answer);
-  Serial.println(bytesSend);
 }
 void GetKeyCommand(Command command) {
   String answer = "";
-  if (IsUUIDInFile(bansFileName, command.uuid))
-    answer = GenerateAnswerString(command, ACCESS_DENIED);
-  else if (IsUUIDInFile(usersFileName, command.uuid)) {
+  if (IsUUIDInFile(usersFileName, command.uuid) || IsUUIDInFile(adminsFileName, command.uuid)) {
     int keyPosition = 0;
     String line = "";
     bool isInFile = false;
@@ -427,6 +496,8 @@ void GetKeyCommand(Command command) {
       WriteToLog(command, command.data, FAILURE);
     }
   }
+  else if (IsUUIDInFile(bansFileName, command.uuid) || IsUUIDInFile(requestsFileName, command.uuid))
+    answer = GenerateAnswerString(command, ACCESS_DENIED);
   else 
     answer = GenerateAnswerString(command, FAILURE);
   
@@ -439,9 +510,8 @@ void GetLogCommand(Command command) {
     int indexer = command.data.toInt();
     String data = "";
     String line = "";
-    sdCard.OpenFileForReading(logFileName);
-    
     int i = 0;
+    sdCard.OpenFileForReading(logFileName);
     do
     {
       line = sdCard.ReadLineFromFile();
@@ -451,7 +521,6 @@ void GetLogCommand(Command command) {
       }
       i++;
     } while (line != "" && i < (indexer+1) * 10);
-
     sdCard.CloseFile();
     answer = GenerateAnswerString(command, SUCCESS, data);
   }
@@ -463,7 +532,6 @@ void GetLogCommand(Command command) {
 }
 void ClearLogCommand(Command command) {
   String answer = "";
-
   if (IsUUIDInFile(adminsFileName, command.uuid)) {
     sdCard.ClearFile(logFileName);
     answer = GenerateAnswerString(command, SUCCESS);
@@ -476,10 +544,8 @@ void ClearLogCommand(Command command) {
   Serial.println(bytesSend);
 }
 void AdminCheckCommand(Command command) {
-  bool isAdmin = IsUUIDInFile(adminsFileName, command.uuid);
   String answer = "";
-  
-  if (isAdmin) 
+  if (IsUUIDInFile(adminsFileName, command.uuid)) 
     answer = GenerateAnswerString(command, SUCCESS);
   else
     answer = GenerateAnswerString(command, FAILURE);
@@ -503,7 +569,7 @@ bool IsUUIDInFile (String file, String uuid) {
   return isInFile;
 }
 String GetUserName (String uuid) {
-  sdCard.OpenFileForReading(usersFileName);
+  sdCard.OpenFileForReading(profilesFileName);
   String line = "";
   String userName = "";
   bool isInFile = false;
