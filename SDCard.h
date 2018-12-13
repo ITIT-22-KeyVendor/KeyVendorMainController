@@ -17,6 +17,8 @@ public:
   int    FileByteLength();
   int    WriteToFile(String);
   String ReadLineFromFile();
+  bool   EditLineFromFile (String, String, String);
+  bool   DeleteLineFromFile (String, String);
 private:
   char* ConvertStringToArray(String);  
   File file;

@@ -20,13 +20,14 @@ const String SET_KEY_LIST =  "10";
 const String GET_KEY =       "11";
 const String GET_LOG =       "12";
 const String CLEAR_LOG =     "13";
-const String ADMIN_CHECK =   "14"; 
+const String ADMIN_CHECK =   "14";
+const String UPDATE_INFO =   "15";
 
-String* COMMANDS[] = { &USER_LOGIN,     &USER_REGISTER,  &USER_CONFIRM,   &USER_DENY,      
-                       &USER_BAN,       &USER_UNBAN,     &USER_PROMOTE,   &USER_DEMOTE,  
-                       &GET_USER_LIST,  &GET_KEY_LIST,   &SET_KEY_LIST,   &GET_KEY,        
-                       &GET_LOG,        &CLEAR_LOG,      &ADMIN_CHECK };
-const int COMMANDS_ARRAY_SIZE = 15;
+const String* COMMANDS[] = { &USER_LOGIN,     &USER_REGISTER,  &USER_CONFIRM,   &USER_DENY,      
+                             &USER_BAN,       &USER_UNBAN,     &USER_PROMOTE,   &USER_DEMOTE,  
+                             &GET_USER_LIST,  &GET_KEY_LIST,   &SET_KEY_LIST,   &GET_KEY,        
+                             &GET_LOG,        &CLEAR_LOG,      &ADMIN_CHECK,    &UPDATE_INFO };
+const int COMMANDS_ARRAY_SIZE = 16;
 
 struct Command { 
   String uuid = "";
@@ -85,7 +86,7 @@ Command GenerateCommand(String commandString) {
       if (!existing) command.isValid = false;
     }
   }
-    
+  
   return command;
 }
 String GenerateAnswerString(Command command, String answerType, String data = "") {

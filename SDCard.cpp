@@ -73,9 +73,90 @@ String SDCard::ReadLineFromFile() {
   char symbol;
   while (file.available()) {
     symbol = file.read();
-    if (symbol == '\n') 
+    if (symbol == '\n')
       break;
     data += symbol;
   }
   return String(data);
 }
+bool   SDCard::EditLineFromFile (String fileName, String lineStartingText, String replacementText) {
+  if(!OpenFileForReading(fileName))
+    return false;
+    
+  File tempFile = SD.open("temp.txt", FILE_WRITE);
+  String line = "";
+  
+  do {
+    line = ReadLineFromFile();
+    if (line != "" && line.startsWith(lineStartingText))
+      line = replacementText;
+    if (line != "")
+      tempFile.println(line);
+  } while (line != "");
+  
+  tempFile.close();
+  CloseFile();
+  
+  ClearFile(fileName);
+  OpenFileForWriting(fileName);
+  tempFile = SD.open("temp.txt", FILE_READ);
+
+  do {
+    line = "";
+    char symbol;
+    while (tempFile.available()) {
+      symbol = tempFile.read();
+      if (symbol == '\n')
+        break;
+      line += symbol;
+    }
+    WriteToFile(line);
+  } while (line != "");
+
+  CloseFile();
+  tempFile.close();
+  SD.remove("temp.txt");
+  return true;
+}
+bool   SDCard::DeleteLineFromFile (String fileName, String lineStartingText) {
+  if (!OpenFileForReading(fileName))
+    return false;
+  
+  File tempFile = SD.open("temp.txt", FILE_WRITE);
+  String line = "";
+  
+  do {
+    line = ReadLineFromFile();
+    if (line != "") {
+      if (line.startsWith(lineStartingText))
+        continue;
+      else
+        tempFile.println(line);
+    }      
+  } while (line != "");
+  
+  tempFile.close();
+  CloseFile();
+  
+  ClearFile(fileName);
+  OpenFileForWriting(fileName);
+  tempFile = SD.open("temp.txt", FILE_READ);
+
+  do {
+    line = "";
+    char symbol;
+    while (tempFile.available()) {
+      symbol = tempFile.read();
+      if (symbol == '\n')
+        break;
+      line += symbol;
+    }
+    WriteToFile(line);
+  } while (line != "");
+
+  CloseFile();
+  tempFile.close();
+  SD.remove("temp.txt");
+  return true;
+}
+
